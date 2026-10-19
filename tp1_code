@@ -1,0 +1,532 @@
+int const DS = 5;
+int const SHCP = 4;
+int const STCP = 2;
+
+int const ledBar1 = 0;
+int const ledBar3 = 12;
+int const ledBar4 = 13;
+int const ledBar5 = 15;
+int counter = 0;
+int winCounter = 0;
+int lossCounter = 0;
+bool hasPlayed = false;
+bool lostLastTry = false;
+int target = 0;
+
+
+int const button = 16;
+
+int const buzzer = 14;
+
+
+void setup() {
+  // put your setup code here, to run once:
+
+  pinMode(button, INPUT_PULLDOWN_16);
+
+  pinMode(ledBar1, OUTPUT);
+  pinMode(buzzer, OUTPUT);
+  pinMode(ledBar3, OUTPUT);
+  pinMode(ledBar4, OUTPUT);
+  pinMode(ledBar5, OUTPUT);
+
+  pinMode(DS, OUTPUT);
+  pinMode(SHCP, OUTPUT);
+  pinMode(STCP, OUTPUT);
+
+  digitalWrite(SHCP, LOW);
+  digitalWrite(STCP, LOW);
+
+  startGame();
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+  digitalWrite(STCP, LOW);
+  if (!hasPlayed) {
+    hasPlayed = true;
+    pickRandomTarget();
+  }
+
+  while (digitalRead(button) == 1) {
+    hasPlayed = false;
+    counter++;
+    powerUp(counter);
+  }
+
+  if (!hasPlayed) {
+    evaluateShot(counter);
+    evaluateGame();
+  }
+
+  powerDown();
+}
+
+
+void winGameRoutine() {
+  tone(buzzer, 523, 150);
+  delay(180);
+  turnOffAll();
+  latch();
+  tone(buzzer, 659, 150);
+  delay(180);
+  shiftGreenLights();
+  tone(buzzer, 784, 150);
+  delay(180);
+  shiftGreenLights();
+  shiftGreenLights();
+  turnOffAll();
+  tone(buzzer, 1047, 500);
+  delay(550);
+  latch();
+  noTone(buzzer);
+}
+
+void loseGameRoutine() {
+  turnOffAll();
+  latch();
+  tone(buzzer, 392, 200);
+  delay(230);
+  tone(buzzer, 262, 400);
+  delay(430);
+  flashRed();
+  delay(500);
+  flashRed();
+  delay(500);
+  tone(buzzer, 392, 200);
+  delay(230);
+  tone(buzzer, 262, 400);
+  flashRed();
+  turnOffAll();
+  delay(500);
+}
+
+void playLosingMusic() {
+  tone(buzzer, 440, 250);
+  delay(280);
+  tone(buzzer, 349, 250);
+  delay(280);
+  tone(buzzer, 294, 250);
+  delay(280);
+  tone(buzzer, 220, 600);
+  delay(650);
+  noTone(buzzer);
+}
+
+void evaluateGame() {
+  if (winCounter == 3) {
+    winGameRoutine();
+    resetGame();
+  } else if (lossCounter == 2) {
+    loseGameRoutine();
+    resetGame();
+  }
+}
+
+void resetGame() {
+  turnOffAll();
+  delay(3000);
+  counter = 0;
+  winCounter = 0;
+  lossCounter = 0;
+  lostLastTry = false;
+}
+
+void evaluateShot(int counter) {
+  if (counter < 5) {
+    hitRoutine();
+  } else {
+    missRoutine();
+  }
+}
+
+void hitRoutine() {
+  winCounter++;
+
+  turnOffBar();
+  turnOnWinningLights();
+  tone(buzzer, 523, 150);
+  delay(180);
+  turnOnTargetLight();
+  shift(0);
+  shift(0);
+  tone(buzzer, 784, 250);
+  delay(280);
+  latch();
+  delay(500);
+
+  turnOffAll();
+  noTone(buzzer);
+  latch();
+  delay(500);
+
+  turnOnWinningLights();
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  latch();
+
+
+  lostLastTry = false;
+}
+
+void turnOffAll() {
+  for (int i = 0; i < 8; i++) {
+    shift(0);
+  }
+  digitalWrite(ledBar1, LOW);
+  digitalWrite(ledBar3, LOW);
+  digitalWrite(ledBar4, LOW);
+  digitalWrite(ledBar5, LOW);
+}
+
+void shiftGreenLights() {
+  shift(1);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  latch();
+  delay(200);
+
+  shift(0);
+  shift(1);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  latch();
+  delay(200);
+
+  shift(0);
+  shift(0);
+  shift(1);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  latch();
+  delay(200);
+}
+
+void turnOnWinningLights() {
+  switch (winCounter) {
+    case 0:
+      shift(0);
+      shift(0);
+      shift(0);
+      break;
+    case 1:
+      shift(1);
+      shift(0);
+      shift(0);
+      break;
+    case 2:
+      shift(1);
+      shift(1);
+      shift(0);
+      break;
+    case 3:
+      shift(1);
+      shift(1);
+      shift(1);
+      break;
+  }
+}
+
+void turnOnTargetLight() {
+  switch (target) {
+    case 3:
+      shift(1);
+      shift(0);
+      shift(0);
+      break;
+    case 4:
+      shift(0);
+      shift(1);
+      shift(0);
+      break;
+    case 5:
+      shift(0);
+      shift(0);
+      shift(1);
+      break;
+  }
+}
+
+void missRoutine() {
+  turnOffBar();
+  latch();
+  tone(buzzer, 392, 200);
+  delay(230);
+  turnOnWinningLights();
+  latch();
+
+  turnOnTargetLight();
+  shift(0);
+  shift(1);
+
+  tone(buzzer, 262, 400);
+  latch();
+
+  noTone(buzzer);
+  delay(500);
+
+  turnOnWinningLights();
+  for (int i = 3; i < 8; i++) {
+    shift(0);
+  }
+
+  latch();
+  delay(500);
+
+  turnOnWinningLights();
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(1);
+
+  latch();
+  lossCounter++;
+  lostLastTry = true;
+}
+
+void startGame() {
+  flashLights();
+}
+
+void flashLights() {
+  tone(buzzer, 220, 300);
+  delay(300);
+  tone(buzzer, 247, 300);
+  delay(300);
+  tone(buzzer, 262, 400);
+  flashGreen();
+
+  tone(buzzer, 220, 150);
+  delay(150);
+  tone(buzzer, 247, 300);
+  delay(300);
+  tone(buzzer, 262, 400);
+  flashBlue();
+
+  tone(buzzer, 220, 150);
+  delay(150);
+  tone(buzzer, 247, 300);
+  delay(300);
+  tone(buzzer, 262, 400);
+  flashRed();
+
+  flashBar();
+  tone(buzzer, 262, 400);
+  noTone(buzzer);
+  delay(500);
+}
+
+void pickRandomTarget() {
+  target = random(3, 6);
+
+  turnOnWinningLights();
+  turnOnTargetLight();
+  shift(0);
+  //keep the red light on
+  if (lostLastTry) {
+    shift(1);
+  } else {
+    shift(0);
+  }
+
+  latch();
+  delay(500);
+
+  turnOnWinningLights();
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  if (lostLastTry) {
+    shift(1);
+  } else {
+    shift(0);
+  }
+
+  latch();
+}
+
+void shift(int v) {
+  digitalWrite(DS, v);
+
+  digitalWrite(SHCP, HIGH);
+  digitalWrite(SHCP, LOW);
+}
+
+void latch() {
+  digitalWrite(STCP, HIGH);
+  digitalWrite(STCP, LOW);
+}
+
+void flashGreen() {
+  shift(1);
+  shift(1);
+  shift(1);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  latch();
+  delay(1000);
+}
+
+void flashBlue() {
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(1);
+  shift(1);
+  shift(1);
+  shift(0);
+  shift(0);
+
+  latch();
+  delay(1000);
+}
+
+void flashRed() {
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(1);
+
+  latch();
+  delay(1000);
+
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+
+  latch();
+}
+
+
+void powerUp(int counter) {
+  switch (counter) {
+    case 1:
+      tone(buzzer, 300, 150);
+      digitalWrite(ledBar1, HIGH);
+      delay(500);
+      break;
+    case 2:
+      tone(buzzer, 400, 150);
+      turnOnWinningLights();
+      shift(0);
+      shift(0);
+      shift(0);
+      shift(1);
+      if (lostLastTry) {
+        shift(1);
+      } else {
+        shift(0);
+      }
+      latch();
+      delay(500);
+      break;
+    case 3:
+      tone(buzzer, 500, 150);
+      digitalWrite(ledBar3, HIGH);
+      delay(500);
+      break;
+    case 4:
+      tone(buzzer, 600, 150);
+      digitalWrite(ledBar4, HIGH);
+      delay(500);
+      break;
+    case 5:
+      tone(buzzer, 700, 150);
+      digitalWrite(ledBar5, HIGH);
+      delay(500);
+      break;
+  }
+}
+
+void powerDown() {
+  counter = 0;
+  digitalWrite(ledBar1, LOW);
+  turnOnWinningLights();
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  if (lostLastTry) {
+    shift(1);
+  } else {
+    shift(0);
+  }
+  latch();
+  digitalWrite(ledBar3, LOW);
+  digitalWrite(ledBar4, LOW);
+  digitalWrite(ledBar5, LOW);
+}
+
+void flashBar() {
+  digitalWrite(ledBar1, HIGH);
+  turnOnWinningLights();
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(1);
+  if (lostLastTry) {
+    shift(1);
+  } else {
+    shift(0);
+  }
+  latch();
+  digitalWrite(ledBar3, HIGH);
+  digitalWrite(ledBar4, HIGH);
+  digitalWrite(ledBar5, HIGH);
+  delay(1000);
+  turnOffBar();
+}
+
+void turnOffBar() {
+  digitalWrite(ledBar1, LOW);
+  turnOnWinningLights();
+  shift(0);
+  shift(0);
+  shift(0);
+  shift(0);
+  if (lostLastTry) {
+    shift(1);
+  } else {
+    shift(0);
+  }
+  latch();
+  digitalWrite(ledBar3, LOW);
+  digitalWrite(ledBar4, LOW);
+  digitalWrite(ledBar5, LOW);
+}
